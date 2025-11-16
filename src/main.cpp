@@ -82,10 +82,11 @@ int main()
     PhongMaterial phongMaterial(glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
 
     // 创建 DirectionalLight（平行光）
-    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
     // 创建 Cube 对象
-    // Cube cube("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &phongMaterial);
+    PhongMaterial cubeMaterial(glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
+    Cube cube("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &cubeMaterial);
 
     // 创建 Plane 对象，传入 Phong 材质
     Plane plane("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &phongMaterial);
@@ -120,29 +121,37 @@ int main()
         modelPlane = glm::rotate(modelPlane, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         modelPlane = glm::scale(modelPlane, glm::vec3(10.0f, 10.0f, 1.0f));
 
+        glm::mat4 model = glm::mat4(1.0f);
+
+        glm::mat4 modelCube = glm::mat4(1.0f);
+        modelCube = glm::translate(modelCube, glm::vec3(2.0f, 1.0f, 0.0f));
+
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = camera.GetProjectionMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
 
-        // 将光源的参数传递给着色器
-        //dirLight.applyLight(*plane.shader, "dirLight");
-        dirLight.applyLight(*sphere.shader, "dirLight");
-
-        // 传递相机位置到着色器（uViewPos）
-        //plane.shader->setVec3("uViewPos", camera.position);
-        sphere.shader->setVec3("uViewPos", camera.position);
-
-        // 渲染点和线
-        glm::mat4 model = glm::mat4(1.0f);
-        // point.render(model, view, projection);
-        // line_x.render(model, view, projection);
-        // line_y.render(model, view, projection);
-        // line_z.render(model, view, projection);
+        // TODO: 高光有点问题
 
         // 渲染sphere
+        dirLight.applyLight(*sphere.shader, "dirLight");
+        sphere.shader->setVec3("uViewPos", camera.position);
         sphere.render(model, view, projection);
 
         // 渲染plane
+        dirLight.applyLight(*plane.shader, "dirLight");
+        plane.shader->setVec3("uViewPos", camera.position);
         plane.render(modelPlane, view, projection);
+
+        // 渲染cube
+        dirLight.applyLight(*cube.shader, "dirLight");
+        cube.shader->setVec3("uViewPos", camera.position);
+        cube.render(modelCube, view, projection);
+
+        // 渲染点和线
+
+        point.render(model, view, projection);
+        line_x.render(model, view, projection);
+        line_y.render(model, view, projection);
+        line_z.render(model, view, projection);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
