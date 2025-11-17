@@ -15,9 +15,9 @@ void main()
 {
     // 计算片段的世界坐标和法线
     FragPos = vec3(uModel * vec4(aPos, 1.0));
-    Normal = mat3(transpose(inverse(uModel))) * aNormal;  // 处理法线
+    Normal = normalize(mat3(transpose(inverse(uModel))) * aNormal);  // 处理法线
     TexCoord = aTexCoord;
 
     // 计算最终位置
-    gl_Position = uProjection * uView * vec4(FragPos, 1.0);
+    gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
 }

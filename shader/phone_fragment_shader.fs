@@ -48,4 +48,9 @@ void main()
     // 最终光照颜色
     vec3 result = ambient + diffuse + specular;
     FragColor = vec4(result, 1.0);  // 最终光照颜色
+
+    //debug
+    // vec3 n = normalize(Normal);
+    // vec3 color = n * 0.5 + 0.5;
+    // FragColor = vec4(color, 1.0);
 }

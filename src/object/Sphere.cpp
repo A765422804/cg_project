@@ -1,5 +1,7 @@
 #include "Sphere.h"
 
+#include <iostream>
+
 Sphere::Sphere(const char *vertexPath, const char *fragmentPath, Material *material, float radius, unsigned int stacks, unsigned int slices)
     : radius(radius), stacks(stacks), slices(slices)
 {
@@ -42,28 +44,28 @@ Sphere::Sphere(const char *vertexPath, const char *fragmentPath, Material *mater
 
 void Sphere::generateSphereData()
 {
-    // 顶点数据的生成：根据经纬度生成球体的顶点
+    // 顶点数据的生成：根据经纬度生成球体的顶点（无冗余）
     for (unsigned int i = 0; i <= stacks; ++i)
     {
-        float lat = glm::pi<float>() * float(i) / float(stacks); // 纬度
-        for (unsigned int j = 0; j <= slices; ++j)
+        float lat = glm::pi<float>() * float(i) / float(stacks); // 纬度（0到π）
+        for (unsigned int j = 0; j < slices; ++j)                // 注意：j < slices（不含slices，避免与j=0重复）
         {
-            float lon = 2 * glm::pi<float>() * float(j) / float(slices); // 经度
+            float lon = 2 * glm::pi<float>() * float(j) / float(slices); // 经度（0到2π）
 
             // 计算顶点的 x, y, z 坐标
             float x = radius * sin(lat) * cos(lon);
             float y = radius * cos(lat);
             float z = radius * sin(lat) * sin(lon);
 
-            // 纹理坐标（经度和纬度）
+            // 纹理坐标（u范围0~1，v范围0~1，无缝衔接）
             float u = float(j) / float(slices);
             float v = float(i) / float(stacks);
 
-            // 添加顶点到数组（位置 + 法线 + 纹理坐标）
+            // 添加顶点数据（位置 + 法线 + 纹理坐标）
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
-            vertices.push_back(x / radius); // 法线（归一化）
+            vertices.push_back(x / radius); // 法线（单位化向量）
             vertices.push_back(y / radius);
             vertices.push_back(z / radius);
             vertices.push_back(u);
@@ -71,22 +73,29 @@ void Sphere::generateSphereData()
         }
     }
 
-    // 索引数据的生成：通过经纬度创建索引，定义两个三角形构成的每个面
+    // 索引数据的生成：处理球面网格连接，最后一列无缝衔接第一列
     for (unsigned int i = 0; i < stacks; ++i)
     {
         for (unsigned int j = 0; j < slices; ++j)
         {
-            unsigned int first = i * (slices + 1) + j;
-            unsigned int second = first + slices + 1;
+            // 当前行顶点索引
+            unsigned int currentRow = i * slices;
+            // 下一行顶点索引（行数+1）
+            unsigned int nextRow = (i + 1) * slices;
+            // 当前列索引
+            unsigned int currentCol = j;
+            // 下一列索引（处理边界：最后一列衔接第一列）
+            unsigned int nextCol = (j + 1) % slices;
 
-            // 每个面由两个三角形组成
-            indices.push_back(first);
-            indices.push_back(second);
-            indices.push_back(first + 1);
+            // 第一个三角形：(当前行当前列) -> (下一行当前列) -> (当前行下一列)
+            indices.push_back(currentRow + currentCol);
+            indices.push_back(nextRow + currentCol);
+            indices.push_back(currentRow + nextCol);
 
-            indices.push_back(second);
-            indices.push_back(second + 1);
-            indices.push_back(first + 1);
+            // 第二个三角形：(下一行当前列) -> (下一行下一列) -> (当前行下一列)
+            indices.push_back(nextRow + currentCol);
+            indices.push_back(nextRow + nextCol);
+            indices.push_back(currentRow + nextCol);
         }
     }
 }

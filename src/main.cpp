@@ -78,21 +78,23 @@ int main()
     // 对象初始化
     // -----------
 
-    // 创建 Phong 材质
-    PhongMaterial phongMaterial(glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
+    // 创建 Phong 材质 (duffuse specular ambient shininess)
+
 
     // 创建 DirectionalLight（平行光）
-    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    DirectionalLight dirLight(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
     // 创建 Cube 对象
     PhongMaterial cubeMaterial(glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
     Cube cube("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &cubeMaterial);
 
     // 创建 Plane 对象，传入 Phong 材质
-    Plane plane("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &phongMaterial);
+    PhongMaterial planeMaterial(glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
+    Plane plane("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &planeMaterial);
 
     // 创建 Sphere 对象
-    Sphere sphere("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &phongMaterial);
+    PhongMaterial sphereMaterial(glm::vec3(0.1f, 0.8f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
+    Sphere sphere("../shader/normal_vertex_shader.vs", "../shader/normal_fragment_shader.fs", &sphereMaterial);
 
     // 创建point和line对象
     Point point("../shader/default_vertex_shader.vs", "../shader/default_fragment_shader.fs");
@@ -121,20 +123,23 @@ int main()
         modelPlane = glm::rotate(modelPlane, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         modelPlane = glm::scale(modelPlane, glm::vec3(10.0f, 10.0f, 1.0f));
 
-        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 modelSphere = glm::mat4(1.0f);
+        modelSphere = glm::translate(modelSphere, glm::vec3(0.0f, 1.0f, 0.0f));
 
         glm::mat4 modelCube = glm::mat4(1.0f);
         modelCube = glm::translate(modelCube, glm::vec3(2.0f, 1.0f, 0.0f));
 
+        glm::mat4 model = glm::mat4(1.0f);
+
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = camera.GetProjectionMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
 
-        // TODO: 高光有点问题
+        // TODO: sphere应该是有点问题
 
         // 渲染sphere
         dirLight.applyLight(*sphere.shader, "dirLight");
         sphere.shader->setVec3("uViewPos", camera.position);
-        sphere.render(model, view, projection);
+        sphere.render(modelSphere, view, projection);
 
         // 渲染plane
         dirLight.applyLight(*plane.shader, "dirLight");
