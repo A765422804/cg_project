@@ -28,9 +28,10 @@ aux_source_directory(src/light DIR_LIGHT_SRC)
 aux_source_directory(src/material DIR_MATERIAL_SRC)
 aux_source_directory(src/object DIR_OBJECT_SRC)
 aux_source_directory(src/tool DIR_TOOL_SRC)
+aux_source_directory(src/texture DIR_TEXTURE_SRC)
 
 # 将所有子目录的源文件合并到一起
-list(APPEND DIR_ALL_SRC ${DIR_LIGHT_SRC} ${DIR_MATERIAL_SRC} ${DIR_OBJECT_SRC} ${DIR_TOOL_SRC})
+list(APPEND DIR_ALL_SRC ${DIR_LIGHT_SRC} ${DIR_MATERIAL_SRC} ${DIR_OBJECT_SRC} ${DIR_TOOL_SRC} ${DIR_TEXTURE_SRC})
 
 # 创建可执行文件
 add_executable(cg_project ${DIR_ALL_SRC})

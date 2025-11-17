@@ -16,38 +16,39 @@ uniform vec3 uMaterialSpecular; // 镜面反射颜色
 uniform vec3 uMaterialAmbient;  // 环境光颜色
 uniform float uMaterialShininess; // 反射率
 
+// 纹理控制
+uniform bool uUseDiffuseMap;
+uniform sampler2D uDiffuseMap;
+
 void main()
 {
-    // 1. 漫反射光照计算
-    // 计算光源方向并归一化
-    vec3 lightDir = normalize(-uLightDirection); // 平行光，所以方向是负的
+    // 归一化法线和光线方向
+    vec3 N = normalize(Normal);
+    vec3 L = normalize(-uLightDirection); // 平行光方向
 
-    // 计算漫反射
-    float diff = max(dot(Normal, lightDir), 0.0);  // 漫反射强度
+    // 1. 基础颜色：来自材质颜色或者纹理
+    vec3 baseColor = uMaterialDiffuse;
+    if (uUseDiffuseMap)
+    {
+        baseColor = texture(uDiffuseMap, TexCoord).rgb;
+    }
 
-    // 2. 镜面反射光照计算
-    // 计算视线方向
-    vec3 viewDir = normalize(uViewPos - FragPos);
+    // 2. 漫反射
+    float diff = max(dot(N, L), 0.0);
+    vec3 diffuse = diff * baseColor * uLightColor;
 
-    // 计算反射方向
-    vec3 reflectDir = reflect(-lightDir, Normal);
+    // 3. 镜面反射
+    vec3 V = normalize(uViewPos - FragPos);
+    vec3 R = reflect(-L, N);
+    float spec = pow(max(dot(V, R), 0.0), uMaterialShininess);
+    vec3 specular = spec * uMaterialSpecular * uLightColor;
 
-    // 计算镜面反射
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), uMaterialShininess);
+    // 4. 环境光
+    vec3 ambient = uMaterialAmbient * uLightColor;
 
-    // 3. 最终颜色计算
-    // 环境光影响
-    vec3 ambient = 0.1 * uMaterialAmbient; // 环境光影响
-
-    // 漫反射光照
-    vec3 diffuse = diff * uMaterialDiffuse * uLightColor; // 漫反射光照
-
-    // 镜面反射光照
-    vec3 specular = spec * uMaterialSpecular * uLightColor; // 镜面反射光照
-
-    // 最终光照颜色
+    // 5. 最终结果
     vec3 result = ambient + diffuse + specular;
-    FragColor = vec4(result, 1.0);  // 最终光照颜色
+    FragColor = vec4(result, 1.0);
 
     //debug
     // vec3 n = normalize(Normal);

@@ -11,9 +11,12 @@
 #include "object/Sphere.h"
 
 #include "material/PhoneMaterial.h"
+#include "material/TexturedPhoneMaterial.h"
 
 #include "tool/Line.h"
 #include "tool/Point.h"
+
+#include "texture/Texture.h"
 
 // 回调函数
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -78,23 +81,22 @@ int main()
     // 对象初始化
     // -----------
 
-    // 创建 Phong 材质 (duffuse specular ambient shininess)
-
-
     // 创建 DirectionalLight（平行光）
-    DirectionalLight dirLight(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
     // 创建 Cube 对象
     PhongMaterial cubeMaterial(glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
     Cube cube("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &cubeMaterial);
 
     // 创建 Plane 对象，传入 Phong 材质
-    PhongMaterial planeMaterial(glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
+    Texture floorTex("../texture/floor.jpg");
+    TexturedPhongMaterial planeMaterial(glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f, &floorTex);
     Plane plane("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &planeMaterial);
 
     // 创建 Sphere 对象
-    PhongMaterial sphereMaterial(glm::vec3(0.1f, 0.8f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
-    Sphere sphere("../shader/normal_vertex_shader.vs", "../shader/normal_fragment_shader.fs", &sphereMaterial);
+    Texture earthTex("../texture/earth.jpg");
+    TexturedPhongMaterial sphereMaterial(glm::vec3(0.1f, 0.8f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f, &earthTex);
+    Sphere sphere("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &sphereMaterial);
 
     // 创建point和line对象
     Point point("../shader/default_vertex_shader.vs", "../shader/default_fragment_shader.fs");

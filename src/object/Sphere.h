@@ -21,7 +21,7 @@ public:
 
     Shader *shader;
 
-public:
+private:
     unsigned int VBO, VAO, EBO;
     Material *material; // 材质对象，用于渲染时应用
 
