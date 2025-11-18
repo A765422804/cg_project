@@ -1,8 +1,9 @@
 #include "Point.h"
 
-Point::Point(const char *vertexPath, const char *fragmentPath)
+Point::Point(const char *vertexPath, const char *fragmentPath,Material *material)
 {
     shader = new Shader(vertexPath, fragmentPath);
+    material = material;
 
     // 创建 VAO 和 VBO
     glGenVertexArrays(1, &VAO);

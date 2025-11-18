@@ -16,10 +16,14 @@ public:
     // 重写 applyLight()，将点光源的参数传递给着色器
     void applyLight(Shader &shader, const std::string &lightName) const override
     {
-        shader.setVec3(lightName + ".position", position);
-        shader.setVec3(lightName + ".color", color);
-        shader.setFloat(lightName + ".constant", constant);
-        shader.setFloat(lightName + ".linear", linear);
-        shader.setFloat(lightName + ".quadratic", quadratic);
+        shader.use();
+
+        shader.setVec3("uPointLight.position", position); // 更新光源位置
+        shader.setVec3("uPointLight.color", color); // 更新光源颜色
+
+        // 衰减参数
+        shader.setFloat("uPointLight.constant", constant);
+        shader.setFloat("uPointLight.linear", linear);
+        shader.setFloat("uPointLight.quadratic", quadratic);
     }
 };

@@ -1,8 +1,9 @@
 #include "Line.h"
 
-Line::Line(const char *vertexPath, const char *fragmentPath, glm::vec3 start, glm::vec3 end)
+Line::Line(const char *vertexPath, const char *fragmentPath, glm::vec3 start, glm::vec3 end, Material *material)
 {
     shader = new Shader(vertexPath, fragmentPath);
+    material = material;
 
     // 创建 VAO 和 VBO
     glGenVertexArrays(1, &VAO);

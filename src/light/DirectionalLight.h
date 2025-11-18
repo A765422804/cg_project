@@ -14,8 +14,8 @@ public:
     void applyLight(Shader &shader, const std::string &lightName) const override
     {
         shader.use();
-        // 修改为符合新的命名规范：使用 u + 单词大写格式
-        shader.setVec3("uLightDirection", direction); // 更新光源方向
-        shader.setVec3("uLightColor", color);         // 更新光源颜色
+
+        shader.setVec3("uDirLight.direction", direction); // 更新光源方向
+        shader.setVec3("uDirLight.color", color);         // 更新光源颜色
     }
 };

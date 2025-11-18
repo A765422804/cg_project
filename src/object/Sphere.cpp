@@ -48,7 +48,7 @@ void Sphere::generateSphereData()
     for (unsigned int i = 0; i <= stacks; ++i)
     {
         float lat = glm::pi<float>() * float(i) / float(stacks); // 纬度（0到π）
-        for (unsigned int j = 0; j < slices; ++j)                // 注意：j < slices（不含slices，避免与j=0重复）
+        for (unsigned int j = 0; j <= slices; ++j)                // 注意：j < slices（不含slices，避免与j=0重复）
         {
             float lon = 2 * glm::pi<float>() * float(j) / float(slices); // 经度（0到2π）
 
