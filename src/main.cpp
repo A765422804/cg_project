@@ -82,18 +82,19 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // GL_LINE for wireframe mode
 
     // 对象初始化
     // -----------
 
     // 创建 DirectionalLight（平行光）
-    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(.0f, .0f, .0f));
+    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
 
     // 创建 PointLight（点光源）
-    PointLight pointLight(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(1.0, 1.0, 1.0));
+    PointLight pointLight(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(1.0, 1.0, 1.0));
 
     // 创建 Cube 对象
-    PhongMaterial cubeMaterial(glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f);
+    PhongMaterial cubeMaterial(glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 64.0f);
     Cube cube("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &cubeMaterial);
 
     // 创建point实体
@@ -102,12 +103,12 @@ int main()
 
     // 创建 Plane 对象，传入 Phong 材质
     Texture floorTex("../texture/floor.jpg");
-    TexturedPhongMaterial planeMaterial(glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f, &floorTex);
+    TexturedPhongMaterial planeMaterial(glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 64.0f, &floorTex);
     Plane plane("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &planeMaterial);
 
     // 创建 Sphere 对象
     Texture earthTex("../texture/earth.jpg");
-    TexturedPhongMaterial sphereMaterial(glm::vec3(0.1f, 0.8f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 32.0f, &earthTex);
+    TexturedPhongMaterial sphereMaterial(glm::vec3(0.1f, 0.8f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 64.0f, &earthTex);
     Sphere sphere("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &sphereMaterial);
 
     // 创建point和line对象
@@ -142,8 +143,8 @@ int main()
 
         // 新增：点光源旋转参数
         float rotationSpeed = 30.0f; // 旋转速度（度/秒）
-        float rotationRadius = 5.0f; // 旋转半径（离Y轴的距离）
-        float yHeight = 5.0f;        // 点光源的Y轴高度（旋转时保持不变）
+        float rotationRadius = 2.0f; // 旋转半径（离Y轴的距离）
+        float yHeight = 2.0f;        // 点光源的Y轴高度（旋转时保持不变）
         // 新增：更新点光源位置（绕Y轴旋转）
         // 计算旋转角度（随时间增加，单位：弧度）
         float angle = glm::radians(rotationSpeed * currentFrame);
@@ -160,6 +161,7 @@ int main()
 
         glm::mat4 modelSphere = glm::mat4(1.0f);
         modelSphere = glm::translate(modelSphere, glm::vec3(0.0f, 1.0f, 0.0f));
+        modelSphere = glm::scale(modelSphere, glm::vec3(.5f, .5f, .5f));
 
         glm::mat4 modelCube = glm::mat4(1.0f);
         modelCube = glm::translate(modelCube, glm::vec3(2.0f, 1.0f, 0.0f));
@@ -172,9 +174,12 @@ int main()
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = camera.GetProjectionMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
-
-        // TODO: sphere应该是有点问题
         // TODO: shadow map
+        // TODO: 更多材质
+        // TODO：更多Object
+        // TODO: ao？
+        // TODO: 光追？
+        // TODO: human类，控制人物重力等
 
         // 渲染点光源立方体
         pointLightCube.render(modelPointLight, view, projection);

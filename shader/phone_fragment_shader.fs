@@ -30,7 +30,7 @@ uniform PointLight uPointLight;  // 点光源
 // -------------------------- 材质参数 --------------------------
 uniform vec3 uMaterialAmbient;   // 环境光反射率（例如：vec3(0.1)）
 uniform vec3 uMaterialSpecular;  // 镜面反射率（例如：vec3(0.5)）
-float uMaterialShininess;        // 高光锐度（例如：32.0）
+uniform float uMaterialShininess;        // 高光锐度（例如：32.0）
 
 // 纹理控制
 uniform bool uUseDiffuseMap;
@@ -49,7 +49,7 @@ vec3 calcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 baseCo
     
     // 镜面反射
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), uMaterialShininess);
     vec3 specular = spec * uMaterialSpecular * light.color;
     
     // 环境光

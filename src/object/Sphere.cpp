@@ -44,58 +44,76 @@ Sphere::Sphere(const char *vertexPath, const char *fragmentPath, Material *mater
 
 void Sphere::generateSphereData()
 {
-    // 顶点数据的生成：根据经纬度生成球体的顶点（无冗余）
+    vertices.clear();
+    indices.clear();
+
+    // 球面坐标系公式：
+    // x = radius * sin(theta) * cos(phi)
+    // y = radius * cos(theta)
+    // z = radius * sin(theta) * sin(phi)
+    // 其中：theta 是极角（0~π），phi 是方位角（0~2π）
+
+    // 遍历所有堆叠（stacks，极角方向）
     for (unsigned int i = 0; i <= stacks; ++i)
     {
-        float lat = glm::pi<float>() * float(i) / float(stacks); // 纬度（0到π）
-        for (unsigned int j = 0; j <= slices; ++j)                // 注意：j < slices（不含slices，避免与j=0重复）
+        float theta = glm::pi<float>() * (float)i / (float)stacks; // 极角（0 到 π）
+        float sinTheta = sin(theta);
+        float cosTheta = cos(theta);
+
+        // 遍历所有切片（slices，方位角方向）
+        for (unsigned int j = 0; j <= slices; ++j)
         {
-            float lon = 2 * glm::pi<float>() * float(j) / float(slices); // 经度（0到2π）
+            float phi = 2.0f * glm::pi<float>() * (float)j / (float)slices; // 方位角（0 到 2π）
+            float sinPhi = sin(phi);
+            float cosPhi = cos(phi);
 
-            // 计算顶点的 x, y, z 坐标
-            float x = radius * sin(lat) * cos(lon);
-            float y = radius * cos(lat);
-            float z = radius * sin(lat) * sin(lon);
+            // 1. 计算顶点位置（世界空间）
+            float x = radius * sinTheta * cosPhi;
+            float y = radius * cosTheta;
+            float z = radius * sinTheta * sinPhi;
 
-            // 纹理坐标（u范围0~1，v范围0~1，无缝衔接）
-            float u = float(j) / float(slices);
-            float v = float(i) / float(stacks);
+            // 2. 计算法线（球体的法线就是顶点指向球心的反方向，即顶点坐标归一化）
+            float nx = x / radius; // 归一化（除以半径得到单位向量）
+            float ny = y / radius;
+            float nz = z / radius;
 
-            // 添加顶点数据（位置 + 法线 + 纹理坐标）
+            // 3. 计算纹理坐标（范围 [0,1]）
+            float u = (float)j / (float)slices; // u 坐标（左右方向）
+            float v = (float)i / (float)stacks;        // v 坐标（上下方向）
+
+            // 将位置、法线、纹理坐标加入顶点数组
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
-            vertices.push_back(x / radius); // 法线（单位化向量）
-            vertices.push_back(y / radius);
-            vertices.push_back(z / radius);
+            vertices.push_back(nx);
+            vertices.push_back(ny);
+            vertices.push_back(nz);
             vertices.push_back(u);
             vertices.push_back(v);
         }
     }
 
-    // 索引数据的生成：处理球面网格连接，最后一列无缝衔接第一列
+    // 生成索引（每个面由两个三角形组成）
+    // 每个堆叠和切片形成一个四边形，拆分为两个三角形
     for (unsigned int i = 0; i < stacks; ++i)
     {
         for (unsigned int j = 0; j < slices; ++j)
         {
-            // 当前行顶点索引
-            unsigned int currentRow = i * slices;
-            // 下一行顶点索引（行数+1）
-            unsigned int nextRow = (i + 1) * slices;
-            // 当前列索引
-            unsigned int currentCol = j;
-            // 下一列索引（处理边界：最后一列衔接第一列）
-            unsigned int nextCol = (j + 1) % slices;
+            // 当前四边形的四个顶点索引
+            unsigned int topLeft = i * (slices + 1) + j;
+            unsigned int topRight = topLeft + 1;
+            unsigned int bottomLeft = (i + 1) * (slices + 1) + j;
+            unsigned int bottomRight = bottomLeft + 1;
 
-            // 第一个三角形：(当前行当前列) -> (下一行当前列) -> (当前行下一列)
-            indices.push_back(currentRow + currentCol);
-            indices.push_back(nextRow + currentCol);
-            indices.push_back(currentRow + nextCol);
+            // 第一个三角形：上左 -> 上右 -> 下右
+            indices.push_back(topLeft);
+            indices.push_back(topRight);
+            indices.push_back(bottomRight);
 
-            // 第二个三角形：(下一行当前列) -> (下一行下一列) -> (当前行下一列)
-            indices.push_back(nextRow + currentCol);
-            indices.push_back(nextRow + nextCol);
-            indices.push_back(currentRow + nextCol);
+            // 第二个三角形：上左 -> 下右 -> 下左
+            indices.push_back(topLeft);
+            indices.push_back(bottomRight);
+            indices.push_back(bottomLeft);
         }
     }
 }
