@@ -1,13 +1,10 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "Object.h"
 
-#include "../Shader.h"
-#include "../material/Material.h"
 
-class Cube
+
+class Cube : public Object
 {
 public:
     Cube(const char *vertexPath, const char *fragmentPath, Material *material);
@@ -16,11 +13,9 @@ public:
 
     ~Cube();
 
-    Shader *shader;
+    void renderVertex();
 
 private:
-    unsigned int VBO, VAO, EBO;
-    Material *material; // 材质对象，用于渲染时应用
 
     // 正方体的顶点数据（包括位置、法线和纹理坐标）
     float vertices[192] = {

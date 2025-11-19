@@ -1,12 +1,8 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <glm/glm.hpp>
+#include "Object.h"
 
-#include "../Shader.h"
-#include "../material/Material.h"
-
-class Plane
+class Plane : public Object
 {
 public:
     // 构造函数，传入着色器文件路径和材质对象
@@ -18,12 +14,9 @@ public:
     // 析构函数
     ~Plane();
 
-    Shader *shader;
+    void renderVertex();
 
 private:
-    unsigned int VBO, VAO, EBO;
-    Material *material; // 材质对象，用于渲染时应用
-
     // 平面四个顶点的数据（位置、法线和纹理坐标）
     float vertices[32] = {
         // 位置              // 法线             // 纹理坐标

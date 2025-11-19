@@ -38,19 +38,9 @@ Cube::Cube(const char *vertexPath, const char *fragmentPath, Material *material)
 
 void Cube::render(glm::mat4 model, glm::mat4 view, glm::mat4 projection)
 {
-    shader->use();
+    Object::render(model, view, projection);
 
-    // 应用材质
-    material->applyMaterial(*shader);
-
-    // 传递模型、视图和投影矩阵到着色器
-    shader->setMat4("uModel", model);
-    shader->setMat4("uView", view);
-    shader->setMat4("uProjection", projection);
-
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+    renderVertex();
 }
 
 Cube::~Cube()
@@ -59,4 +49,11 @@ Cube::~Cube()
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     delete shader;
+}
+
+void Cube::renderVertex()
+{
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }

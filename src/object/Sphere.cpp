@@ -1,7 +1,5 @@
 #include "Sphere.h"
 
-#include <iostream>
-
 Sphere::Sphere(const char *vertexPath, const char *fragmentPath, Material *material, float radius, unsigned int stacks, unsigned int slices)
     : radius(radius), stacks(stacks), slices(slices)
 {
@@ -79,7 +77,7 @@ void Sphere::generateSphereData()
 
             // 3. 计算纹理坐标（范围 [0,1]）
             float u = (float)j / (float)slices; // u 坐标（左右方向）
-            float v = (float)i / (float)stacks;        // v 坐标（上下方向）
+            float v = (float)i / (float)stacks; // v 坐标（上下方向）
 
             // 将位置、法线、纹理坐标加入顶点数组
             vertices.push_back(x);
@@ -120,19 +118,9 @@ void Sphere::generateSphereData()
 
 void Sphere::render(glm::mat4 uModel, glm::mat4 uView, glm::mat4 uProjection)
 {
-    shader->use();
+    Object::render(uModel, uView, uProjection);
 
-    // 使用材质
-    material->applyMaterial(*shader);
-
-    // 传递模型、视图和投影矩阵到着色器
-    shader->setMat4("uModel", uModel);
-    shader->setMat4("uView", uView);
-    shader->setMat4("uProjection", uProjection);
-
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0); // 使用索引绘制球体
-    glBindVertexArray(0);
+    renderVertex();
 }
 
 Sphere::~Sphere()
@@ -141,4 +129,11 @@ Sphere::~Sphere()
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     delete shader;
+}
+
+void Sphere::renderVertex()
+{
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0); // 使用索引绘制球体
+    glBindVertexArray(0);
 }

@@ -1,7 +1,7 @@
 #include "Camera.h"
 
 // 相机默认速度与鼠标灵敏度
-const float DEFAULT_SPEED = 2.0f;
+const float DEFAULT_SPEED = 3.0f;
 const float DEFAULT_SENSITIVITY = 0.1f;
 const float DEFAULT_ZOOM = 45.0f;
 

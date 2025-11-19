@@ -6,6 +6,10 @@
 // 构造函数
 Shader::Shader(const char *vertexPath, const char *fragmentPath)
 {
+    // 保存路径，用于报错时显示
+    std::string vPath = vertexPath;
+    std::string fPath = fragmentPath;
+
     // 从文件中读取着色器代码
     std::string vertexCode;
     std::string fragmentCode;
@@ -36,7 +40,7 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
     int success;
     char infoLog[512];
 
-    // 编译顶点着色器
+    // 编译顶点着色器（报错时显示文件路径）
     vertex = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex, 1, &vShaderCode, NULL);
     glCompileShader(vertex);
@@ -45,10 +49,11 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
     {
         glGetShaderInfoLog(vertex, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << "File: " << vPath << "\n" // 显示顶点着色器路径
                   << infoLog << std::endl;
     }
 
-    // 编译片段着色器
+    // 编译片段着色器（报错时显示文件路径）
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment, 1, &fShaderCode, NULL);
     glCompileShader(fragment);
@@ -57,10 +62,11 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
     {
         glGetShaderInfoLog(fragment, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                  << "File: " << fPath << "\n" // 显示片段着色器路径
                   << infoLog << std::endl;
     }
 
-    // 创建着色器程序并链接
+    // 链接程序（报错时显示涉及的两个文件）
     ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
@@ -70,6 +76,8 @@ Shader::Shader(const char *vertexPath, const char *fragmentPath)
     {
         glGetProgramInfoLog(ID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+                  << "Vertex File: " << vPath << "\n"
+                  << "Fragment File: " << fPath << "\n"
                   << infoLog << std::endl;
     }
 
