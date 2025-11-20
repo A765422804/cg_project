@@ -46,6 +46,31 @@ uniform samplerCube uPointShadowMap;  // 点光源阴影立方体贴图
 uniform vec3 uPointLightPos;         // 点光源位置
 uniform float uPointLightFar;        // 点光源视锥体范围（=25.0）
 
+// 用于点光源阴影的采样偏移方向（20 个样本）
+const vec3 sampleOffsetDirections[20] = vec3[20](
+    vec3( 1.0,  1.0,  1.0),
+    vec3(-1.0,  1.0,  1.0),
+    vec3( 1.0, -1.0,  1.0),
+    vec3(-1.0, -1.0,  1.0),
+    vec3( 1.0,  1.0, -1.0),
+    vec3(-1.0,  1.0, -1.0),
+    vec3( 1.0, -1.0, -1.0),
+    vec3(-1.0, -1.0, -1.0),
+    vec3( 1.0,  0.0,  0.0),
+    vec3(-1.0,  0.0,  0.0),
+    vec3( 0.0,  1.0,  0.0),
+    vec3( 0.0, -1.0,  0.0),
+    vec3( 0.0,  0.0,  1.0),
+    vec3( 0.0,  0.0, -1.0),
+    vec3( 1.0,  1.0,  0.0),
+    vec3(-1.0,  1.0,  0.0),
+    vec3( 1.0, -1.0,  0.0),
+    vec3(-1.0, -1.0,  0.0),
+    vec3( 1.0,  0.0,  1.0),
+    vec3(-1.0,  0.0,  1.0)
+);
+
+
 // -------------------------- 光照计算函数 --------------------------
 // 计算平行光贡献
 vec3 calcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 baseColor) 
@@ -72,32 +97,35 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 {
     vec3 lightDir = normalize(light.position - fragPos);  // 从片段指向点光源
     
-    // 漫反射
-    float diff = max(dot(normal, lightDir), 0.0);
+    // 漫反射：增加微小偏置，避免极端角度下的黑边
+    float diff = max(dot(normal, lightDir), 0.001); // 用0.001替代0.0，避免完全黑
     vec3 diffuse = diff * baseColor * light.color;
     
-    // 镜面反射
+    // 镜面反射：优化高光计算逻辑，避免视角与法线平行时的异常
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), uMaterialShininess);
+    // 高光项添加0.001偏置，避免pow(0, 高shininess)导致的数值不稳定
+    float spec = pow(max(dot(viewDir, reflectDir), 0.001), uMaterialShininess);
     vec3 specular = spec * uMaterialSpecular * light.color;
     
-    // 环境光
+    // 环境光：保持不变（基础亮度）
     vec3 ambient = uMaterialAmbient * light.color;
     
-    // 衰减计算
-    float distance = length(light.position - fragPos);  // 片段到点光源的距离
+    // 衰减计算：优化衰减公式，避免近距离过亮+远距离衰减更自然
+    float distance = length(light.position - fragPos);
+    // 增加最小距离偏置（0.1），避免distance=0时衰减为1/constant（可能过亮）
+    float distanceBias = max(distance, 0.1f);
     float attenuation = 1.0 / (
         light.constant + 
-        light.linear * distance + 
-        light.quadratic * (distance * distance)
+        light.linear * distanceBias + 
+        light.quadratic * distanceBias * distanceBias
     );
     
-    // 应用衰减
+    // 应用衰减（保持原逻辑）
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
     
-    return ambient + diffuse + specular;
+    return  ambient + diffuse + specular;
 }
 
 // 计算软阴影（PCF滤波）
@@ -138,57 +166,33 @@ float calculateShadow()
     return shadow;
 }
 
+// 计算点光源软阴影 (PCF)
 float calculatePointShadow(vec3 fragPos)
 {
     vec3 fragToLight = fragPos - uPointLightPos;
     float currentDepth = length(fragToLight);
-    if (currentDepth > uPointLightFar)
-        return 0.0;
-
-    // 动态偏移（基于表面角度和距离）
-    vec3 normal = normalize(Normal);
-    vec3 lightDir = normalize(uPointLightPos - fragPos); // 光源指向片段
-    float cosTheta = max(dot(normal, lightDir), 0.001); // 表面与光线的夹角余弦值
-    float bias = 0.005 + (1.0 - cosTheta) * 0.1; // 倾斜表面（cosTheta小）增大偏移
-    bias *= (currentDepth / uPointLightFar); // 远处适当减小偏移（避免过度悬空）
-    bias = min(bias, 0.1); // 限制最大偏移
-
-    // 采样范围随距离衰减（避免远处采样过度）
-    float sampleRadius = 0.05 + (currentDepth / uPointLightFar) * 0.1;
-    sampleRadius = min(sampleRadius, 0.15);
 
     float shadow = 0.0;
-    int samples = 16; // 减少采样数减轻性能压力，同时减少偏移依赖
-    mat3 randomRotation = mat3(
-        0.945519,  0.325569, 0.0,
-        -0.325569, 0.945519, 0.0,
-        0.0,       0.0,      1.0
-    );
+    float bias = 0.05;
+    int samples = 48;
 
-    vec3 sampleOffsets[16] = vec3[] (
-        vec3( 0.5381,  0.1856,  0.4339), vec3(-0.2461,  0.4853,  0.4575),
-        vec3( 0.1520, -0.4441,  0.4194), vec3(-0.4888, -0.2367,  0.4357),
-        vec3( 0.4439,  0.4765, -0.1331), vec3(-0.1340,  0.4956, -0.3606),
-        vec3( 0.0883, -0.4925, -0.3580), vec3(-0.4766, -0.2666, -0.3559),
-        vec3( 0.4978,  0.0533,  0.3540), vec3(-0.0794,  0.4971,  0.0762),
-        vec3( 0.0355, -0.4992,  0.0599), vec3(-0.4933, -0.0948,  0.0864),
-        vec3( 0.4281,  0.2715, -0.4235), vec3(-0.2990,  0.3803, -0.4266),
-        vec3( 0.2681, -0.3833, -0.4215), vec3(-0.3797, -0.2865, -0.4262)
-    );
+    float diskRadius = 0.05;  // 软阴影采样半径
+    diskRadius *= currentDepth / uPointLightFar;
 
-    for(int i = 0; i < samples; ++i)
+    for(int i = 0; i < samples; i++)
     {
-        vec3 offset = randomRotation * sampleOffsets[i] * sampleRadius;
-        vec3 sampleDir = fragToLight + offset;
-        float closestDepth = texture(uPointShadowMap, sampleDir).r * uPointLightFar;
-        
-        // 增加深度比较的容差（避免过度敏感）
-        shadow += (currentDepth - bias > closestDepth + 0.001) ? 1.0 : 0.0;
+        float closestDepth = texture(uPointShadowMap,
+                                     fragToLight + sampleOffsetDirections[i] * diskRadius).r;
+        closestDepth *= uPointLightFar;
+
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
     }
 
     shadow /= float(samples);
     return shadow;
 }
+
 
 void main()
 {
@@ -207,7 +211,7 @@ void main()
     vec3 dirResult =  calcDirLight(uDirLight, normal, viewDir, baseColor);  // 平行光
     vec3 pointResult = calcPointLight(uPointLight, normal, FragPos, viewDir, baseColor);  // 点光源
 
-    // 新增：计算阴影
+    // 计算阴影
     float dirShadow = calculateShadow();
     float pointShadow = calculatePointShadow(FragPos); 
 

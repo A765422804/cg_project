@@ -13,6 +13,8 @@
 #include "object/Cube.h"
 #include "object/Plane.h"
 #include "object/Sphere.h"
+#include "object/Cone.h"
+#include "object/Cylinder.h"
 
 #include "material/PhoneMaterial.h"
 #include "material/TexturedPhoneMaterial.h"
@@ -29,12 +31,15 @@ void processInput(GLFWwindow *window, float deltaTime);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 
+// create scene objects
+void createSceneObjects(std::vector<std::shared_ptr<Object>> &objects);
+
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1280;
+const unsigned int SCR_HEIGHT = 1280;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
+Camera camera(glm::vec3(0.0f, 0.0f, 15.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
 bool keys[1024];
 
 // frame time
@@ -47,11 +52,11 @@ unsigned int depthMapFBO; // 帧缓冲：用于渲染阴影图
 unsigned int depthMap;    // 深度纹理：存储阴影图
 
 // point light 阴影参数
-const unsigned int POINT_SHADOW_WIDTH = 1024;
-const unsigned int POINT_SHADOW_HEIGHT = 1024;
+const unsigned int POINT_SHADOW_WIDTH = 2048;
+const unsigned int POINT_SHADOW_HEIGHT = 2048;
 unsigned int pointDepthMap;    // 立方体贴图深度纹理
 unsigned int pointDepthMapFBO; // 帧缓冲（用于渲染6个方向）
-float pointLightFar = 25.0f;   // 点光源视锥体范围（需覆盖场景）
+float pointLightFar = 15.0f;   // 点光源视锥体范围（需覆盖场景）
 
 // default model
 glm::mat4 model = glm::mat4(1.0f);
@@ -110,44 +115,21 @@ int main()
     // -----------
 
     // 创建 DirectionalLight（平行光）
-    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+    DirectionalLight dirLight(glm::vec3(-1.0f, -1.0f, -1.0f), glm::vec3(0.7f, 0.7f, 0.7f));
 
     // 创建 PointLight（点光源）
-    PointLight pointLight(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(1.0, 1.0, 1.0));
+    PointLight pointLight(glm::vec3(2.0f, 0.0f, 2.0f), glm::vec3(0.9));
+    // 点光源旋转参数
+    float rotationSpeed = 60.0f;                  // 旋转速度（度/秒）
+    float rotationRadius = pointLight.position.z; // 旋转半径（离Y轴的距离）
+    float yHeight = pointLight.position.y;        // 点光源的Y轴高度（旋转时保持不变）
     // 创建 point light 实体
     PureColorMaterial pointLightMaterial(glm::vec3(1.0f, 1.0f, 1.0f));
     Cube pointLightCube("../shader/default_vertex_shader.vs", "../shader/default_fragment_shader.fs", &pointLightMaterial);
 
+    // 创建场景物体
     std::vector<std::shared_ptr<Object>> objects;
-
-    // 创建 Cube 对象
-    PhongMaterial cubeMaterial(glm::vec3(0.8f, 0.1f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 64.0f);
-    auto cube = std::make_shared<Cube>("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &cubeMaterial);
-    glm::mat4 modelCube = glm::mat4(1.0f);
-    modelCube = glm::translate(modelCube, glm::vec3(2.0f, 1.0f, 0.0f));
-    cube->model = modelCube;
-    objects.push_back(cube);
-
-    // 创建 Plane 对象，传入 Phong 材质
-    Texture floorTex("../texture/floor.jpg");
-    TexturedPhongMaterial planeMaterial(glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 64.0f, &floorTex);
-    auto plane = std::make_shared<Plane>("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &planeMaterial);
-    glm::mat4 modelPlane = glm::mat4(1.0f);
-    modelPlane = glm::translate(modelPlane, glm::vec3(0.0f, -1.0f, 0.0f));
-    modelPlane = glm::rotate(modelPlane, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    modelPlane = glm::scale(modelPlane, glm::vec3(20.0f, 20.0f, 1.0f));
-    plane->model = modelPlane;
-    objects.push_back(plane);
-
-    // 创建 Sphere 对象
-    Texture earthTex("../texture/earth.jpg");
-    TexturedPhongMaterial sphereMaterial(glm::vec3(0.1f, 0.8f, 0.1f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.1f, 0.1f, 0.1f), 64.0f, &earthTex);
-    auto sphere = std::make_shared<Sphere>("../shader/phone_vertex_shader.vs", "../shader/phone_fragment_shader.fs", &sphereMaterial);
-    glm::mat4 modelSphere = glm::mat4(1.0f);
-    modelSphere = glm::translate(modelSphere, glm::vec3(0.0f, 1.0f, 0.0f));
-    modelSphere = glm::scale(modelSphere, glm::vec3(.5f, .5f, .5f));
-    sphere->model = modelSphere;
-    objects.push_back(sphere);
+    createSceneObjects(objects);
 
     // 创建point和line对象
     PureColorMaterial pointMaterial(glm::vec3(1.0f, 0.0f, 0.0f));
@@ -241,11 +223,7 @@ int main()
         // 输入
         processInput(window, deltaTime);
 
-        // 点光源旋转参数
-        float rotationSpeed = 30.0f; // 旋转速度（度/秒）
-        float rotationRadius = 2.0f; // 旋转半径（离Y轴的距离）
-        float yHeight = 2.0f;        // 点光源的Y轴高度（旋转时保持不变）
-        // 新增：更新点光源位置（绕Y轴旋转）
+        // 更新点光源位置（绕Y轴旋转）
         // 计算旋转角度（随时间增加，单位：弧度）
         float angle = glm::radians(rotationSpeed * currentFrame);
         // 绕Y轴旋转的坐标公式：x = r*cos(angle), z = r*sin(angle), y保持不变
@@ -254,7 +232,7 @@ int main()
         pointLight.position.y = yHeight; // 固定Y轴高度
         glm::mat4 modelPointLight = glm::mat4(1.0f);
         modelPointLight = glm::translate(modelPointLight, pointLight.position);
-        modelPointLight = glm::scale(modelPointLight, glm::vec3(0.1f, 0.1f, 0.1f));
+        modelPointLight = glm::scale(modelPointLight, glm::vec3(0.2f, 0.2f, 0.2f));
 
         // -------------------------- 第一步：渲染阴影图 --------------------------
         // -------------------------- 渲染平行光阴影图 --------------------------
@@ -346,12 +324,6 @@ int main()
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // 清除颜色和深度缓冲区
-
-        // TODO: 更多材质
-        // TODO：更多Object
-        // TODO: ao？
-        // TODO: 光追？
-        // TODO: human类，控制人物重力等
 
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = camera.GetProjectionMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
@@ -472,4 +444,372 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
+}
+
+void createSceneObjects(std::vector<std::shared_ptr<Object>> &objects)
+{
+    // 场景整体尺寸
+    const float boxSize = 5.0f;    // X/Z 方向半径
+    const float boxHeight = 10.0f; // Y 方向高度
+    const float halfHeight = boxHeight / 2.0f;
+
+    // -------------------------- 材质 & 纹理（static 确保整个程序存活） --------------------------
+    // 盒子墙体：白/红/绿
+    static PhongMaterial whiteMaterial(
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        128.0f);
+
+    // 地面使用纹理（地板）
+    static Texture floorTexture("../texture/floor.jpeg");
+    static TexturedPhongMaterial whiteFloorMaterial(
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        128.0f,
+        &floorTexture);
+
+    // 背后墙用一张纹理
+    static Texture wallTexture("../texture/wall.jpg");
+    static TexturedPhongMaterial wallMaterial(
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        128.0f,
+        &wallTexture);
+
+    // 挂在墙上的画
+    static Texture paintingTexture("../texture/painting.jpg");
+    static TexturedPhongMaterial paintingMaterial(
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.7f, 0.7f, 0.7f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        128.0f,
+        &paintingTexture);
+
+    static PhongMaterial redMaterial(
+        glm::vec3(0.6f, 0.1f, 0.1f),
+        glm::vec3(0.6f, 0.1f, 0.1f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        128.0f);
+
+    static PhongMaterial greenMaterial(
+        glm::vec3(0.1f, 0.6f, 0.1f),
+        glm::vec3(0.1f, 0.6f, 0.1f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        128.0f);
+
+    // 物体材质：多种颜色
+    static PhongMaterial blueMaterial(
+        glm::vec3(0.1f, 0.1f, 0.8f),
+        glm::vec3(0.3f, 0.3f, 1.0f),
+        glm::vec3(0.2f, 0.2f, 0.2f),
+        64.0f);
+
+    static PhongMaterial yellowMaterial(
+        glm::vec3(0.8f, 0.8f, 0.1f),
+        glm::vec3(1.0f, 1.0f, 0.3f),
+        glm::vec3(0.2f, 0.2f, 0.2f),
+        32.0f);
+
+    static PhongMaterial purpleMaterial(
+        glm::vec3(0.6f, 0.1f, 0.6f),
+        glm::vec3(0.8f, 0.3f, 0.8f),
+        glm::vec3(0.3f, 0.3f, 0.3f),
+        128.0f);
+
+    static PhongMaterial orangeMaterial(
+        glm::vec3(0.8f, 0.4f, 0.1f),
+        glm::vec3(1.0f, 0.5f, 0.2f),
+        glm::vec3(0.2f, 0.2f, 0.2f),
+        64.0f);
+
+    // 地球纹理材质（给一个球用 earth.jpg）
+    static Texture earthTex("../texture/earth.jpg");
+    static TexturedPhongMaterial earthMaterial(
+        glm::vec3(0.2f, 0.2f, 0.2f),
+        glm::vec3(1.0f, 1.0f, 1.0f), // 让纹理本身主导漫反射
+        glm::vec3(0.3f, 0.3f, 0.3f),
+        64.0f,
+        &earthTex);
+
+    // 纹理立方体
+    static Texture woodTex("../texture/wood.jpg");
+    static TexturedPhongMaterial woodMaterial(
+        glm::vec3(0.2f, 0.2f, 0.2f),
+        glm::vec3(0.8f, 0.8f, 0.8f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        16.0f,
+        &woodTex);
+
+    // -------------------------- 康奈尔盒：地面/顶面/墙 --------------------------
+    // 1. 地面（Y=-halfHeight，朝上）
+    {
+        auto floor = std::make_shared<Plane>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &whiteFloorMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(0.0f, -halfHeight, 0.0f));
+        m = glm::rotate(m, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(2 * boxSize, 2 * boxSize, 1.0f));
+        floor->model = m;
+        objects.push_back(floor);
+    }
+
+    // 2. 顶面（Y=halfHeight，朝下）
+    {
+        auto ceiling = std::make_shared<Plane>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &whiteMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(0.0f, halfHeight, 0.0f));
+        m = glm::rotate(m, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(2 * boxSize, 2 * boxSize, 1.0f));
+        ceiling->model = m;
+        objects.push_back(ceiling);
+    }
+
+    // 3. 左墙（X=-boxSize，朝右）
+    {
+        auto leftWall = std::make_shared<Plane>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &redMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize, 0.0f, 0.0f));
+        m = glm::rotate(m, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(boxHeight, boxHeight, 1.0f));
+        leftWall->model = m;
+        objects.push_back(leftWall);
+    }
+
+    // 4. 右墙（X=boxSize，朝左）
+    {
+        auto rightWall = std::make_shared<Plane>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &greenMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize, 0.0f, 0.0f));
+        m = glm::rotate(m, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(boxHeight, boxHeight, 1.0f));
+        rightWall->model = m;
+        objects.push_back(rightWall);
+    }
+
+    // 5. 后墙（Z=-boxSize，朝前）
+    {
+        auto backWall = std::make_shared<Plane>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &wallMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(0.0f, 0.0f, -boxSize));
+        m = glm::scale(m, glm::vec3(2 * boxSize, boxHeight, 1.0f));
+        backWall->model = m;
+        objects.push_back(backWall);
+    }
+
+    // 墙上的画
+    {
+        auto paintingPlane = std::make_shared<Plane>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &paintingMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(0.0f, 0.0f, -boxSize + 0.1f));
+        m = glm::scale(m, glm::vec3(3.2f, 2.0f, 1.0f));
+        paintingPlane->model = m;
+        objects.push_back(paintingPlane);
+    }
+
+    // -------------------------- 几何体：Cube / Sphere / Cylinder / Cone / Plane --------------------------
+    // 中央一根柱（Cylinder）
+    {
+        auto centerCylinder = std::make_shared<Cylinder>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &yellowMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(0.0f, -halfHeight + 1.8f, -boxSize * 0.1f));
+        m = glm::scale(m, glm::vec3(0.7f, 1.8f, 0.7f));
+        centerCylinder->model = m;
+        objects.push_back(centerCylinder);
+    }
+
+    // 左前方倾斜圆锥（Cone）
+    {
+        auto frontLeftCone = std::make_shared<Cone>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &purpleMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize * 0.8f, -halfHeight + 0.9f, boxSize * 0.5f));
+        m = glm::rotate(m, glm::radians(-10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        m = glm::rotate(m, glm::radians(8.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(0.8f, 1.6f, 0.8f));
+        frontLeftCone->model = m;
+        objects.push_back(frontLeftCone);
+    }
+
+    // 右后角矮胖圆柱（Cylinder）
+    {
+        auto backRightCylinder = std::make_shared<Cylinder>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &blueMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize * 0.6f, -halfHeight + 0.6f, -boxSize * 0.7f));
+        m = glm::scale(m, glm::vec3(0.9f, 0.6f, 0.9f));
+        backRightCylinder->model = m;
+        objects.push_back(backRightCylinder);
+    }
+
+    // 右前方高瘦圆锥（Cone）
+    {
+        auto frontRightCone = std::make_shared<Cone>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &orangeMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize * 0.8f, -halfHeight + 1.2f, boxSize * 0.5f));
+        m = glm::scale(m, glm::vec3(0.5f, 2.0f, 0.5f));
+        frontRightCone->model = m;
+        objects.push_back(frontRightCone);
+    }
+
+    // 左中位置大立方体（Cube）
+    {
+        auto bigBlueCube = std::make_shared<Cube>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &blueMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize * 0.4f, -halfHeight + 1.5f, -boxSize * 0.4f));
+        m = glm::scale(m, glm::vec3(1.4f, 1.5f, 1.4f));
+        bigBlueCube->model = m;
+        objects.push_back(bigBlueCube);
+    }
+
+    // 中间偏右旋转立方体（Cube）
+    {
+        auto tiltedCube = std::make_shared<Cube>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &yellowMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize * 0.4f, -halfHeight + 1.0f, -boxSize * 0.1f));
+        m = glm::rotate(m, glm::radians(25.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(1.0f, 1.0f, 1.0f));
+        tiltedCube->model = m;
+        objects.push_back(tiltedCube);
+    }
+
+    // 左中大球（Sphere）
+    {
+        auto bigPurpleSphere = std::make_shared<Sphere>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &purpleMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize * 0.2f, -halfHeight + 1.0f, 0.0f));
+        m = glm::scale(m, glm::vec3(1.0f, 1.0f, 1.0f));
+        bigPurpleSphere->model = m;
+        objects.push_back(bigPurpleSphere);
+    }
+
+    // 右后中球（Sphere）
+    {
+        auto midOrangeSphere = std::make_shared<Sphere>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &orangeMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize * 0.1f, -halfHeight + 0.7f, -boxSize * 0.6f));
+        m = glm::scale(m, glm::vec3(0.7f, 0.7f, 0.7f));
+        midOrangeSphere->model = m;
+        objects.push_back(midOrangeSphere);
+    }
+
+    // 左后角迷你球（Sphere）
+    {
+        auto tinySphere = std::make_shared<Sphere>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &yellowMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize * 0.7f, -halfHeight + 0.25f, -boxSize * 0.7f));
+        m = glm::scale(m, glm::vec3(0.25f, 0.25f, 0.25f));
+        tinySphere->model = m;
+        objects.push_back(tinySphere);
+    }
+
+    // 地球球（贴 earth.jpg，略微悬空）
+    {
+        auto earthSphere = std::make_shared<Sphere>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &earthMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize * 0.15f, -halfHeight + 1.2f, boxSize * 0.5f));
+        m = glm::scale(m, glm::vec3(0.6f, 0.6f, 0.6f));
+        earthSphere->model = m;
+        objects.push_back(earthSphere);
+    }
+
+    // 小锥体堆叠在中后部
+    {
+
+        auto headCone = std::make_shared<Cone>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &purpleMaterial);
+        glm::mat4 m2(1.0f);
+        m2 = glm::translate(m2, glm::vec3(-boxSize * 0.8f, -halfHeight + 1.3f, -boxSize * 0.5f));
+        m2 = glm::scale(m2, glm::vec3(0.5f, 0.9f, 0.5f));
+        headCone->model = m2;
+        objects.push_back(headCone);
+    }
+
+    // 纹理立方体（木箱）
+    {
+        auto woodCube = std::make_shared<Cube>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &woodMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize * 0.5f, -halfHeight + 0.8f, boxSize * 0.6f));
+        m = glm::scale(m, glm::vec3(0.9f, 0.7f, 0.9f));
+        woodCube->model = m;
+        objects.push_back(woodCube);
+    }
+
+    // 前中偏左一个小球
+    {
+        auto smallBlueSphere = std::make_shared<Sphere>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &blueMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(-boxSize * 0.2f, -halfHeight + 0.5f, boxSize * 0.9f));
+        m = glm::scale(m, glm::vec3(0.4f, 0.4f, 0.4f));
+        smallBlueSphere->model = m;
+        objects.push_back(smallBlueSphere);
+    }
+
+    // 右中偏前一个细长立方体
+    {
+        auto slimGreenCube = std::make_shared<Cube>(
+            "../shader/phone_vertex_shader.vs",
+            "../shader/phone_fragment_shader.fs",
+            &greenMaterial);
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, glm::vec3(boxSize * 0.75f, -halfHeight + 1.0f, boxSize * 0.1f));
+        m = glm::scale(m, glm::vec3(0.4f, 1.4f, 0.4f));
+        slimGreenCube->model = m;
+        objects.push_back(slimGreenCube);
+    }
 }
