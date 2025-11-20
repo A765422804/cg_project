@@ -91,7 +91,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // 锁定鼠标到窗口中心
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);   // 锁定鼠标
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);   // 锁定鼠标
     glfwSetCursorPos(window, SCR_WIDTH / 2.0f, SCR_HEIGHT / 2.0f); // 将光标移动到窗口中心
 
     // 设置鼠标输入回调
@@ -213,6 +213,8 @@ int main()
     // -----------
     while (!glfwWindowShouldClose(window))
     {
+        int fbWidth, fbHeight;
+        glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 
         // per-frame time logic
         // --------------------
@@ -265,7 +267,7 @@ int main()
 
         // 解绑阴影帧缓冲，恢复视口为窗口大小
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glViewport(0, 0, fbWidth, fbHeight);
 
         // -------------------------- 渲染点光源阴影图（6个方向） --------------------------
         // 点光源透视投影矩阵（90度FOV，覆盖6个方向）
@@ -316,7 +318,7 @@ int main()
 
         // 恢复默认帧缓冲和视口
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glViewport(0, 0, fbWidth, fbHeight);
 
         // -------------------------- 第二步：正常渲染场景（带阴影） --------------------------
         // render
@@ -326,7 +328,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // 清除颜色和深度缓冲区
 
         glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = camera.GetProjectionMatrix((float)SCR_WIDTH / (float)SCR_HEIGHT);
+        glm::mat4 projection = camera.GetProjectionMatrix((float)fbWidth / (float)fbHeight);
 
         // 渲染点光源立方体
         pointLightCube.render(modelPointLight, view, projection);

@@ -166,33 +166,34 @@ float calculateShadow()
     return shadow;
 }
 
-// 计算点光源软阴影 (PCF)
 float calculatePointShadow(vec3 fragPos)
 {
     vec3 fragToLight = fragPos - uPointLightPos;
     float currentDepth = length(fragToLight);
 
+    // Normalize the direction for cubemap sampling
+    vec3 dir = normalize(fragToLight);
+
     float shadow = 0.0;
-    float bias = 0.05;
-    int samples = 48;
+    float bias   = 0.1;
 
-    float diskRadius = 0.05;  // 软阴影采样半径
-    diskRadius *= currentDepth / uPointLightFar;
+    int samples = 20;  // 你可以慢慢加到 48
+    float diskRadius = (currentDepth / uPointLightFar) * 0.02;
 
-    for(int i = 0; i < samples; i++)
+    for (int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(uPointShadowMap,
-                                     fragToLight + sampleOffsetDirections[i] * diskRadius).r;
-        closestDepth *= uPointLightFar;
+        // 在单位球面方向附近扰动，必须 normalize
+        vec3 sampleDir = normalize(dir + sampleOffsetDirections[i] * diskRadius);
 
-        if(currentDepth - bias > closestDepth)
+        float closestDepth = texture(uPointShadowMap, sampleDir).r * uPointLightFar;
+
+        if (currentDepth - bias > closestDepth)
             shadow += 1.0;
     }
 
-    shadow /= float(samples);
+    shadow /= samples;
     return shadow;
 }
-
 
 void main()
 {
