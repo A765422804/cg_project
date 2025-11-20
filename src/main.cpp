@@ -35,8 +35,8 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void createSceneObjects(std::vector<std::shared_ptr<Object>> &objects);
 
 // settings
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 1280;
+const unsigned int SCR_WIDTH = 1024;
+const unsigned int SCR_HEIGHT = 1024;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 15.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
